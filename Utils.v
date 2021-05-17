@@ -176,7 +176,7 @@ always @(*)
 begin
 	if(M_carry & !real_oper)
 	begin
-		normalized_M = M_result[23:1] + {23'b0,M_result[0]};
+		normalized_M = M_result[23:1] + {22'b0,M_result[0]};
 		shift = 5'd0;
 	end
 	else
@@ -324,6 +324,11 @@ begin
 				M_temp = M_result << 23;
 				normalized_M = M_temp[22:0];
 				shift = 5'd23;
+			end			
+			default:
+			begin
+				normalized_M = 23'b0;
+				shift = 5'd0;
 			end			
 		endcase	
 	end

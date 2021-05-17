@@ -22,9 +22,9 @@ module mul(
 				input [31:0] n1,
 				input [31:0] n2,
 				output [31:0] result,
-				input Overflow,
-				input Underflow,
-				input Exception
+				output Overflow,
+				output Underflow,
+				output Exception
 			);
 
 wire [8:0] sum_E,final_E;
@@ -32,7 +32,6 @@ wire [47:0] M_mul_result;
 wire [23:0] normalized_M_mul_result;
 wire [22:0] final_M;
 wire final_sign,reduced_and_E1,reduced_and_E2,reduced_or_E1,reduced_or_E2,carry_E;
-wire [31:0] result1,result2;
 
 // Checking whether all the bits of E1, E2 are 1 ==> Then the number will be either infinity or NAN ( i.e. an Exception ) 
 Reduction_and8bit RA01(.in(n1[30:23]),.out(reduced_and_E1));
@@ -44,11 +43,11 @@ or(Exception,reduced_and_E1,reduced_and_E2);
 // final sign of the result
 xor(final_sign,n1[31],n2[31]);
 
-// if all the bits of E1 or E2 are 0  ===> Number is denormalized and the implied bit of the corresponding mantissa is to be set as 0.
+// if all the bits of E1 or E2 are 0  ===> Number is denormalized and implied bit of the corresponding mantissa is set as 0.
 Reduction_or8bit RO01(.in(n1[30:23]),.out(reduced_or_E1));
 Reduction_or8bit RO02(.in(n1[30:23]),.out(reduced_or_E2));
 
-// Multiplying M1 and M2( here we have firstly concatenated the implied bit with the corresponding mantissa )
+// Multiplying M1 and M2 ( here we have firstly concatenate the implied bit with the corresponding mantissa )
 Multiplier24bit MUL01(.a({reduced_or_E1,n1[22:0]}),.b({reduced_or_E2,n2[22:0]}),.mul(M_mul_result));
 
 // MSB of the product is used as select line
@@ -80,13 +79,6 @@ Adder9bit ADD02(.a(sum_E),.b(9'b110000001),.cin(M_mul_result[47]),.sum(final_E),
 not(Underflow,carry_E);
 and(Overflow,carry_E,final_E[8]);
 
-// if Exception is 1 ===> set the result to all 1s
-Mux_32Bit M04(.in0({final_sign,final_E[7:0],final_M}),.in1(32'b1_11111111_11111111111111111111111),.sl(Exception),.out(result1));
-
-// if Underflow is 1 ===> set the result to all 0s and sign is the final_sign ( setting to 0 )
-Mux_32Bit M05(.in0(result1),.in1({final_sign,31'b00000000_00000000000000000000000}),.sl(Underflow),.out(result2));
-
-// if Overflow is 1 ===> set the E to all 1s and M to all 0s and sign is the final_sign ( setting to +inf or -inf)
-Mux_32Bit M06(.in0(result2),.in1({final_sign,31'b11111111_00000000000000000000000}),.sl(Overflow),.out(result));
+assign result = {final_sign,final_E[7:0],final_M};
 
 endmodule
